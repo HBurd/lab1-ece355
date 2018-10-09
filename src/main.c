@@ -180,20 +180,21 @@ void EXTI0_1_IRQHandler()
 		// 2. Clear EXTI1 interrupt pending flag (EXTI->PR).
 		//
 
-		if(!(TIM2->CR1 & TIM_CR1_CEN))
+		TIM2->CR1 ^= TIM_CR1_CEN;			// toggle timer start/stop
+
+		if(!(TIM2->CR1 & TIM_CR1_CEN))		// if timer is stopped
 		{
-			TIM2->CR1 |= TIM_CR1_CEN;		// start timer
+			uint32_t count = TIM2->CNT;					// read timer count
+
+			uint32_t freq = SystemCoreClock / count;	// calculate frequency
+			uint32_t period = 1000000000 / freq;		// calculate period
+
+			trace_printf("Count value: %d, Frequency: %d Hz, Period: %d ns\n", count, freq, period);	// print to console
+
+			TIM2->CNT = 0x00000000;						// clear count
 		}
-		else
-		{
-			TIM2->CR1 &= ~(TIM_CR1_CEN);	// stop timer
-			uint32_t count = TIM2->CNT;		// read timer count
-			uint32_t freq = SystemCoreClock / count;
-			uint32_t period = 1000000000 / freq;
-			trace_printf("Count value: %d, frequency: %d Hz, period: %d ns\n", count, freq, period);
-			TIM2->CNT = 0x00000000;			// clear count
-		}
-		EXTI->PR |= EXTI_PR_PR1;		// clear pending bit
+
+		EXTI->PR |= EXTI_PR_PR1;						// clear pending bit
 	}
 }
 
